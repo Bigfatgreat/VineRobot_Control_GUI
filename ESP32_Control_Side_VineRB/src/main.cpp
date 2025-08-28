@@ -3,45 +3,215 @@
 
 ControllerPtr myControllers[BP32_MAX_GAMEPADS];
 
-// ------- Relay pins (safe) -------
-const uint8_t RELAY_FILL = 16;   // SA: FILL
-const uint8_t RELAY_EXH  = 17;   // SB: EXHAUST
-const int RELAY_ON  = LOW;       // change to HIGH if your board is active-HIGH
+// ---------------- Pin Setup ----------------
+const uint8_t RELAY_MAIN_FILL = 16;
+const uint8_t RELAY_MAIN_EXH  = 17;
+
+// Section 1 Pouches
+const uint8_t RELAY_S1_LEFT   = 18;
+const uint8_t RELAY_S1_RIGHT  = 19;
+const uint8_t RELAY_S1_TOP    = 21;
+
+// Section 2 Pouches
+const uint8_t RELAY_S2_LEFT   = 22;
+const uint8_t RELAY_S2_RIGHT  = 23;
+const uint8_t RELAY_S2_TOP    = 25;
+
+const int RELAY_ON  = LOW;
 const int RELAY_OFF = HIGH;
+unsigned long lastRelayActionTime = 0;
 const unsigned long DEADTIME_MS = 80;
 
 enum ValveState { HOLD = 0, FILL = 1, EXHAUST = 2 };
-ValveState lastState = HOLD;
+ValveState mainLastState = HOLD;
 
-inline void bothOff() {
-  digitalWrite(RELAY_FILL, RELAY_OFF);
-  digitalWrite(RELAY_EXH,  RELAY_OFF);
+// ---------------- Mode Flags ----------------
+bool modeInput = true;       // true = Input (FILL), false = Exhaust
+bool sectionTwo = false;     // true = Section 2, false = Section 1
+
+uint16_t prevButtons[BP32_MAX_GAMEPADS] = {0};
+
+#define BUTTON_SQUARE    (1 << 3)
+#define BUTTON_CIRCLE    (1 << 1)
+#define BUTTON_TRIANGLE  (1 << 2)
+
+// ---------------- Utility ----------------
+inline void relayOff(uint8_t pin) {
+  digitalWrite(pin, RELAY_OFF);
 }
-void setHold() {
-  if (lastState != HOLD) {
-    bothOff();
-    lastState = HOLD;
-    Serial.println("[CMD] HOLD");
-  }
-}
-void setFill() {
-  if (lastState != FILL) {
-    bothOff(); delay(DEADTIME_MS);
-    digitalWrite(RELAY_FILL, RELAY_ON);
-    lastState = FILL;
-    Serial.println("[CMD] FILL");
-  }
-}
-void setExhaust() {
-  if (lastState != EXHAUST) {
-    bothOff(); delay(DEADTIME_MS);
-    digitalWrite(RELAY_EXH, RELAY_ON);
-    lastState = EXHAUST;
-    Serial.println("[CMD] EXHAUST");
-  }
+inline void relayOn(uint8_t pin) {
+  digitalWrite(pin, RELAY_ON);
 }
 
-// -------- Bluepad32 callbacks --------
+void allPouchOff() {
+  uint8_t pins[] = {
+    RELAY_S1_LEFT, RELAY_S1_RIGHT, RELAY_S1_TOP,
+    RELAY_S2_LEFT, RELAY_S2_RIGHT, RELAY_S2_TOP
+  };
+  for (auto p : pins) relayOff(p);
+}
+
+void bothMainOff() {
+  relayOff(RELAY_MAIN_FILL);
+  relayOff(RELAY_MAIN_EXH);
+}
+
+void setMainHold() {
+  if (mainLastState != HOLD) {
+    bothMainOff();
+    mainLastState = HOLD;
+    Serial.println("[MAIN] HOLD");
+  }
+}
+void setMainFill() {
+  if (mainLastState != FILL && millis() - lastRelayActionTime >= DEADTIME_MS) {
+    bothMainOff();
+    relayOn(RELAY_MAIN_FILL);
+    mainLastState = FILL;
+    lastRelayActionTime = millis();
+    Serial.println("[MAIN] FILL");
+  }
+}
+
+void setMainExhaust() {
+  if (mainLastState != EXHAUST && millis() - lastRelayActionTime >= DEADTIME_MS) {
+    bothMainOff();
+    relayOn(RELAY_MAIN_EXH);
+    mainLastState = EXHAUST;
+    lastRelayActionTime = millis();
+    Serial.println("[MAIN] EXHAUST");
+  }
+}
+
+
+// Set LED color based on current mode and section
+void updateLED(ControllerPtr ctl) {
+  if (!ctl) return;
+
+  if (!sectionTwo) {
+    if (modeInput) ctl->setColorLED(0, 0, 255);       // Light Blue
+    else           ctl->setColorLED(255, 0, 0);       // Red
+  } else {
+    if (modeInput) ctl->setColorLED(255, 255, 255);   // White
+    else           ctl->setColorLED(128, 0, 128);     // Purple
+  }
+}
+
+// ---------------- Gamepad Handler ----------------
+void handlePouch(ControllerPtr ctl, uint16_t buttons, uint16_t buttonMask, const char* name, uint8_t pin) {
+  if (buttons & buttonMask) {
+    relayOn(pin);
+    Serial.printf("[%s] %s ON\n", sectionTwo ? "S2" : "S1", name);
+  } else {
+    relayOff(pin);
+    Serial.printf("[%s] %s OFF\n", sectionTwo ? "S2" : "S1", name);
+  }
+}
+
+
+void processGamepad(ControllerPtr ctl) {
+  int idx = -1;
+  for (int i = 0; i < BP32_MAX_GAMEPADS; ++i) {
+    if (myControllers[i] == ctl) {
+      idx = i;
+      break;
+    }
+  }
+  if (idx == -1) return;
+
+  // ---------------- L1 / R1 toggle ----------------
+  static bool prevL1[BP32_MAX_GAMEPADS] = {false}, prevR1[BP32_MAX_GAMEPADS] = {false};
+  bool currL1 = ctl->l1(), currR1 = ctl->r1();
+
+  if (!prevL1[idx] && currL1) {
+    modeInput ^= 1;
+    updateLED(ctl);
+  }
+  if (!prevR1[idx] && currR1) {
+    sectionTwo ^= 1;
+    updateLED(ctl);
+  }
+
+  prevL1[idx] = currL1;
+  prevR1[idx] = currR1;
+
+  // ---------------- Idle Detection ----------------
+  static bool wasIdle[BP32_MAX_GAMEPADS] = {false};
+  uint16_t btns = ctl->buttons();
+  uint8_t dpad = ctl->dpad();
+  bool anyInput = (btns != 0 || dpad != 0);
+
+  if (!anyInput && !wasIdle[idx]) {
+    ctl->setColorLED(128, 128, 128); // Grey for idle
+    wasIdle[idx] = true;
+  } else if (anyInput && wasIdle[idx]) {
+    updateLED(ctl); // Restore based on mode/section
+    wasIdle[idx] = false;
+  }
+
+  // ---------------- Main D-pad Control ----------------
+  if ((dpad & DPAD_UP) && !(dpad & DPAD_DOWN)) {
+    setMainFill();
+  } else if ((dpad & DPAD_DOWN) && !(dpad & DPAD_UP)) {
+    setMainExhaust();
+  } else {
+    setMainHold();
+  }
+
+  // ---------------- Pouch Control ----------------
+  uint16_t prev = prevButtons[idx];
+  bool l1Held = ctl->l1();  // Check L1 for exhaust override
+
+  auto handleButton = [&](uint16_t mask, uint8_t pin, const char* name) {
+    bool isPressed = (btns & mask);
+    bool wasPressed = (prev & mask);
+
+    if (!wasPressed && isPressed) {
+      if (millis() - lastRelayActionTime >= DEADTIME_MS) {
+        if (l1Held) {
+          relayOn(RELAY_MAIN_EXH);
+          relayOff(RELAY_MAIN_FILL);
+          Serial.printf("[%s] %s EXHAUST\n", sectionTwo ? "S2" : "S1", name);
+        } else {
+          relayOn(pin);
+          Serial.printf("[%s] %s FILL\n", sectionTwo ? "S2" : "S1", name);
+        }
+        lastRelayActionTime = millis();
+      }
+    } else if (wasPressed && !isPressed) {
+      relayOff(pin);
+      relayOff(RELAY_MAIN_EXH);
+      Serial.printf("[%s] %s OFF\n", sectionTwo ? "S2" : "S1", name);
+    }
+  };
+
+
+  // ---------------- Apply to each pouch ----------------
+  if (!sectionTwo) {
+    handleButton(BUTTON_SQUARE,   RELAY_S1_LEFT,  "LEFT");
+    handleButton(BUTTON_CIRCLE,   RELAY_S1_RIGHT, "RIGHT");
+    handleButton(BUTTON_TRIANGLE, RELAY_S1_TOP,   "TOP");
+  } else {
+    handleButton(BUTTON_SQUARE,   RELAY_S2_LEFT,  "LEFT");
+    handleButton(BUTTON_CIRCLE,   RELAY_S2_RIGHT, "RIGHT");
+    handleButton(BUTTON_TRIANGLE, RELAY_S2_TOP,   "TOP");
+  }
+
+  prevButtons[idx] = btns;
+}
+
+
+
+
+
+void processControllers() {
+  for (auto ctl : myControllers) {
+    if (ctl && ctl->isConnected() && ctl->hasData() && ctl->isGamepad())
+      processGamepad(ctl);
+  }
+}
+
+// ---------------- Bluepad32 Callbacks ----------------
 void onConnectedController(ControllerPtr ctl) {
   for (int i = 0; i < BP32_MAX_GAMEPADS; ++i) {
     if (!myControllers[i]) {
@@ -49,6 +219,7 @@ void onConnectedController(ControllerPtr ctl) {
       auto p = ctl->getProperties();
       Serial.printf("Controller %d connected: %s VID=%04x PID=%04x\n",
                     i, ctl->getModelName().c_str(), p.vendor_id, p.product_id);
+      updateLED(ctl);
       return;
     }
   }
@@ -64,48 +235,28 @@ void onDisconnectedController(ControllerPtr ctl) {
   }
 }
 
-// -------- Map D-pad -> valve --------
-void processGamepad(ControllerPtr ctl) {
-  // D-pad is a bitmask defined by Bluepad32: DPAD_UP/DOWN/LEFT/RIGHT
-  uint8_t d = ctl->dpad();
-
-  if (d) {
-    if (d & DPAD_UP)    Serial.println("[BTN] DPAD UP");
-    if (d & DPAD_DOWN)  Serial.println("[BTN] DPAD DOWN");
-    if (d & DPAD_LEFT)  Serial.println("[BTN] DPAD LEFT");
-    if (d & DPAD_RIGHT) Serial.println("[BTN] DPAD RIGHT");
-  }
-
-  // UP = FILL, DOWN = EXHAUST, else HOLD
-  if ((d & DPAD_UP) && !(d & DPAD_DOWN))      setFill();
-  else if ((d & DPAD_DOWN) && !(d & DPAD_UP)) setExhaust();
-  else                                        setHold();
-}
-
-void processControllers() {
-  for (auto ctl : myControllers) {
-    if (ctl && ctl->isConnected() && ctl->hasData() && ctl->isGamepad())
-      processGamepad(ctl);
-  }
-}
-
+// ---------------- Setup & Loop ----------------
 void setup() {
   Serial.begin(115200);
   delay(50);
 
-  pinMode(RELAY_FILL, OUTPUT);
-  pinMode(RELAY_EXH,  OUTPUT);
-  bothOff();
+  // Relay pins
+  uint8_t allPins[] = {
+    RELAY_MAIN_FILL, RELAY_MAIN_EXH,
+    RELAY_S1_LEFT, RELAY_S1_RIGHT, RELAY_S1_TOP,
+    RELAY_S2_LEFT, RELAY_S2_RIGHT, RELAY_S2_TOP
+  };
+  for (auto p : allPins) pinMode(p, OUTPUT);
+  bothMainOff(); allPouchOff();
 
   BP32.setup(&onConnectedController, &onDisconnectedController);
-  // BP32.forgetBluetoothKeys(); // <-- call only when you want to re-pair
   BP32.enableVirtualDevice(false);
 
   Serial.printf("FW: %s  BDAddr: ", BP32.firmwareVersion());
   const uint8_t* a = BP32.localBdAddress();
   Serial.printf("%02X:%02X:%02X:%02X:%02X:%02X\n", a[0],a[1],a[2],a[3],a[4],a[5]);
 
-  Serial.println("D-pad: UP=FILL, DOWN=EXHAUST, else HOLD");
+  Serial.println("Controls ready: D-pad for Main Body, L1 to toggle mode, R1 to toggle section.");
 }
 
 void loop() {
