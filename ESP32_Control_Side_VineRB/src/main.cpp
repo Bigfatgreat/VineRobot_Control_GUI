@@ -31,9 +31,12 @@ bool sectionTwo = false;     // true = Section 2, false = Section 1
 
 uint16_t prevButtons[BP32_MAX_GAMEPADS] = {0};
 
-#define BUTTON_SQUARE    (1 << 3)
-#define BUTTON_CIRCLE    (1 << 1)
-#define BUTTON_TRIANGLE  (1 << 2)
+#define BUTTON_SQUARE    0x0004
+#define BUTTON_CIRCLE    0x0002
+#define BUTTON_TRIANGLE  0x0008
+
+const uint8_t STEPPER_DIR_PIN  = 26;  // Direction control pin
+const uint8_t STEPPER_PWM_PIN  = 27;  // PWM pin for motor
 
 // ---------------- Utility ----------------
 inline void relayOff(uint8_t pin) {
@@ -185,6 +188,36 @@ void processGamepad(ControllerPtr ctl) {
     }
   };
 
+    // -------- Stepper Motor via L2 / R2 (Analog Triggers) --------
+
+  static uint8_t lastTrigger[BP32_MAX_GAMEPADS] = {0}; // 0: none, 1: L2, 2: R2
+
+  int brakeVal = ctl->brake();     // L2 analog (0–1023)
+  int throttleVal = ctl->throttle(); // R2 analog (0–1023)
+
+  // Convert 0–1023 to 0–255 range for PWM
+  uint8_t pwmBrake = map(brakeVal, 0, 1023, 0, 255);
+  uint8_t pwmThrottle = map(throttleVal, 0, 1023, 0, 255);
+
+  bool l2Pressed = brakeVal > 10;
+  bool r2Pressed = throttleVal > 10;
+
+  if (l2Pressed && (!r2Pressed || lastTrigger[idx] != 2)) {
+    digitalWrite(STEPPER_DIR_PIN, LOW); // Reverse
+    ledcWrite(0, pwmBrake);
+    lastTrigger[idx] = 1;
+    Serial.printf("[MOTOR] L2 Reverse | PWM: %u\n", pwmBrake);
+  } else if (r2Pressed && (!l2Pressed || lastTrigger[idx] != 1)) {
+    digitalWrite(STEPPER_DIR_PIN, HIGH); // Forward
+    ledcWrite(0, pwmThrottle);
+    lastTrigger[idx] = 2;
+    Serial.printf("[MOTOR] R2 Forward | PWM: %u\n", pwmThrottle);
+  } else if (!l2Pressed && !r2Pressed) {
+    ledcWrite(0, 0); // Stop
+    lastTrigger[idx] = 0;
+    //Serial.println("[MOTOR] Idle");
+  }
+
 
   // ---------------- Apply to each pouch ----------------
   if (!sectionTwo) {
@@ -198,7 +231,10 @@ void processGamepad(ControllerPtr ctl) {
   }
 
   prevButtons[idx] = btns;
+
+  
 }
+
 
 
 
@@ -249,6 +285,12 @@ void setup() {
   for (auto p : allPins) pinMode(p, OUTPUT);
   bothMainOff(); allPouchOff();
 
+    // Stepper motor setup
+  pinMode(STEPPER_DIR_PIN, OUTPUT);
+  ledcSetup(0, 500, 8); // Channel 0, 500Hz, 8-bit
+  ledcAttachPin(STEPPER_PWM_PIN, 0);
+
+
   BP32.setup(&onConnectedController, &onDisconnectedController);
   BP32.enableVirtualDevice(false);
 
@@ -257,6 +299,7 @@ void setup() {
   Serial.printf("%02X:%02X:%02X:%02X:%02X:%02X\n", a[0],a[1],a[2],a[3],a[4],a[5]);
 
   Serial.println("Controls ready: D-pad for Main Body, L1 to toggle mode, R1 to toggle section.");
+  
 }
 
 void loop() {
