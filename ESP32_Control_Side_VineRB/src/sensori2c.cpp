@@ -1,3 +1,4 @@
+/*
 #include <Wire.h>
 #include <HX711.h>
 
@@ -29,3 +30,4 @@ void loop() {
     prev = now;
   }
 }
+*/
