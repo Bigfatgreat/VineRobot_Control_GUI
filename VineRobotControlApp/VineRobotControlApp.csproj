@@ -7,7 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ScottPlot.WPF" Version="4.1.73" />
-    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="ScottPlot.WPF" Version="5.0.56" />
+    <PackageReference Include="System.IO.Ports" Version="9.0.9" />
   </ItemGroup>
 </Project>

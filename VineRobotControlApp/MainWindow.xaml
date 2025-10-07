@@ -4,7 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:VineRobotControlApp"
-        xmlns:models="clr-namespace:VineRobotControlApp.Models"
         xmlns:ScottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
         mc:Ignorable="d"
         Title="Vine Robot Control" Height="720" Width="1200"
@@ -22,7 +21,7 @@
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
-        <DataTemplate DataType="{x:Type models:SegmentSetpoint}">
+        <DataTemplate x:Key="SegmentSetpointTemplate">
             <Button Tag="{Binding}" Click="SelectSetpoint_Click" Padding="6" Margin="0,4" HorizontalAlignment="Stretch" Style="{StaticResource TransparentButton}">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="24" Height="24" Margin="0,0,8,0"
@@ -110,7 +109,7 @@
                                 </Grid.RowDefinitions>
                                 <TextBlock Text="Left" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" />
                                 <TextBlock Text="Right" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" />
-                                <ItemsControl Grid.Row="1" Grid.Column="0" ItemsSource="{Binding Setpoints}" Margin="12,4" >
+                                <ItemsControl Grid.Row="1" Grid.Column="0" ItemsSource="{Binding Setpoints}" Margin="12,4" ItemTemplate="{StaticResource SegmentSetpointTemplate}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <StackPanel />
@@ -127,7 +126,7 @@
                                         </Style>
                                     </ItemsControl.ItemContainerStyle>
                                 </ItemsControl>
-                                <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Setpoints}" Margin="12,4">
+                                <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Setpoints}" Margin="12,4" ItemTemplate="{StaticResource SegmentSetpointTemplate}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <StackPanel />

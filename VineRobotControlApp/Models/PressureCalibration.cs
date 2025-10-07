@@ -1,16 +1,14 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace VineRobotControlApp.Models;
 
-public class PressureCalibration : INotifyPropertyChanged
+public class PressureCalibration : ObservableObject
 {
     private double _psiMin;
     private double _psiMax = 15;
     private int _adcMin = 500;
     private int _adcMax = 3500;
 
-    public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? CalibrationChanged;
 
     public string Name { get; }
@@ -25,7 +23,7 @@ public class PressureCalibration : INotifyPropertyChanged
         get => _psiMin;
         set
         {
-            if (SetField(ref _psiMin, value))
+            if (SetProperty(ref _psiMin, value))
                 OnCalibrationChanged();
         }
     }
@@ -35,7 +33,7 @@ public class PressureCalibration : INotifyPropertyChanged
         get => _psiMax;
         set
         {
-            if (SetField(ref _psiMax, value))
+            if (SetProperty(ref _psiMax, value))
                 OnCalibrationChanged();
         }
     }
@@ -45,7 +43,7 @@ public class PressureCalibration : INotifyPropertyChanged
         get => _adcMin;
         set
         {
-            if (SetField(ref _adcMin, value))
+            if (SetProperty(ref _adcMin, value))
                 OnCalibrationChanged();
         }
     }
@@ -55,7 +53,7 @@ public class PressureCalibration : INotifyPropertyChanged
         get => _adcMax;
         set
         {
-            if (SetField(ref _adcMax, value))
+            if (SetProperty(ref _adcMax, value))
                 OnCalibrationChanged();
         }
     }
@@ -87,12 +85,4 @@ public class PressureCalibration : INotifyPropertyChanged
         CalibrationChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-            return false;
-        field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        return true;
-    }
 }

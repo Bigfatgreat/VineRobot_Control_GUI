@@ -1,12 +1,11 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using CommunityToolkit.Mvvm.ComponentModel;
 using VineRobotControlApp.Models;
 
 namespace VineRobotControlApp.ViewModels;
 
-public class MainViewModel : INotifyPropertyChanged
+public class MainViewModel : ObservableObject
 {
     private SegmentSetpoint? _selectedSetpoint;
     private string _statusMessage = "Disconnected";
@@ -17,8 +16,6 @@ public class MainViewModel : INotifyPropertyChanged
 
     public PressureCalibration LeftCalibration { get; }
     public PressureCalibration RightCalibration { get; }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
 
     public MainViewModel()
     {
@@ -53,7 +50,7 @@ public class MainViewModel : INotifyPropertyChanged
         get => _selectedSetpoint;
         set
         {
-            if (SetField(ref _selectedSetpoint, value))
+            if (SetProperty(ref _selectedSetpoint, value))
             {
                 foreach (var sp in Setpoints)
                     sp.IsSelected = sp == value;
@@ -64,15 +61,6 @@ public class MainViewModel : INotifyPropertyChanged
     public string StatusMessage
     {
         get => _statusMessage;
-        set => SetField(ref _statusMessage, value);
-    }
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-            return false;
-        field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        return true;
+        set => SetProperty(ref _statusMessage, value);
     }
 }

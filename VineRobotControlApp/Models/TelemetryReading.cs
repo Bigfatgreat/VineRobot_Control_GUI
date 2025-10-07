@@ -1,9 +1,8 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace VineRobotControlApp.Models;
 
-public class TelemetryReading : INotifyPropertyChanged
+public class TelemetryReading : ObservableObject
 {
     private double _psiRaw;
     private double _psiFiltered;
@@ -17,35 +16,24 @@ public class TelemetryReading : INotifyPropertyChanged
     public double PsiRaw
     {
         get => _psiRaw;
-        set => SetField(ref _psiRaw, value);
+        set => SetProperty(ref _psiRaw, value);
     }
 
     public double PsiFiltered
     {
         get => _psiFiltered;
-        set => SetField(ref _psiFiltered, value);
+        set => SetProperty(ref _psiFiltered, value);
     }
 
     public int Adc
     {
         get => _adc;
-        set => SetField(ref _adc, value);
+        set => SetProperty(ref _adc, value);
     }
 
     public bool IsOutlier
     {
         get => _isOutlier;
-        set => SetField(ref _isOutlier, value);
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-            return false;
-        field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        return true;
+        set => SetProperty(ref _isOutlier, value);
     }
 }
