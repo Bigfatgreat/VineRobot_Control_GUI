@@ -1,9 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Threading.Tasks;
-using ScottPlot;
+using System.Drawing;
+using ScottPlot.Plottable;
 using VineRobotControlApp.Models;
 using VineRobotControlApp.Services;
 using VineRobotControlApp.ViewModels;
@@ -17,6 +16,9 @@ public partial class MainWindow : Window
     private readonly List<double> _rawPsiPoints = new();
     private readonly List<double> _filteredPsiPoints = new();
     private readonly List<double> _sampleIndex = new();
+    private Scatter? _rawScatter;
+    private Scatter? _filteredScatter;
+
     public MainViewModel ViewModel { get; }
 
     public MainWindow()
@@ -38,34 +40,15 @@ public partial class MainWindow : Window
 
     private void ConfigurePlot()
     {
-        var plot = PressurePlot.Plot;
-        plot.Title("Pressure History");
-        plot.XLabel("Sample");
-        plot.YLabel("PSI");
-        plot.ShowLegend(Alignment.UpperRight);
-        PressurePlot.Refresh();
-    }
+        PressurePlot.Plot.Title("Pressure History");
+        PressurePlot.Plot.XLabel("Sample");
+        PressurePlot.Plot.YLabel("PSI");
+        PressurePlot.Plot.Legend(location: ScottPlot.Alignment.UpperRight);
 
-    private void UpdatePressurePlot()
-    {
-        var plot = PressurePlot.Plot;
-        plot.Clear();
-
-        if (_sampleIndex.Count > 0)
-        {
-            var xs = _sampleIndex.ToArray();
-            var raw = plot.Add.Scatter(xs, _rawPsiPoints.ToArray());
-            raw.LegendText = "Raw";
-
-            var filtered = plot.Add.Scatter(xs, _filteredPsiPoints.ToArray());
-            filtered.LegendText = "Filtered";
-        }
-
-        plot.Axes.AutoScale();
-        plot.Title("Pressure History");
-        plot.XLabel("Sample");
-        plot.YLabel("PSI");
-        plot.ShowLegend(Alignment.UpperRight);
+        _rawScatter = PressurePlot.Plot.AddScatter(Array.Empty<double>(), Array.Empty<double>(), label: "Raw");
+        _rawScatter.Color = System.Drawing.Color.LightGray;
+        _filteredScatter = PressurePlot.Plot.AddScatter(Array.Empty<double>(), Array.Empty<double>(), label: "Filtered");
+        _filteredScatter.Color = System.Drawing.Color.DeepSkyBlue;
         PressurePlot.Refresh();
     }
 
@@ -142,14 +125,6 @@ public partial class MainWindow : Window
     private void SelectSetpoint_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: SegmentSetpoint sp })
-        {
-            ViewModel.SelectedSetpoint = sp;
-        }
-    }
-
-    private void SetpointGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (sender is DataGrid { SelectedItem: SegmentSetpoint sp })
         {
             ViewModel.SelectedSetpoint = sp;
         }
@@ -238,7 +213,9 @@ public partial class MainWindow : Window
                 _filteredPsiPoints.RemoveAt(0);
             }
 
-            UpdatePressurePlot();
+            _rawScatter?.Update(_sampleIndex.ToArray(), _rawPsiPoints.ToArray());
+            _filteredScatter?.Update(_sampleIndex.ToArray(), _filteredPsiPoints.ToArray());
+            PressurePlot.Refresh();
         });
     }
 }

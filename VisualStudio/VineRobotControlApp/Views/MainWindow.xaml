@@ -1,0 +1,218 @@
+<Window x:Class="VineRobotControlApp.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:VineRobotControlApp.ViewModels"
+        xmlns:ScottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
+        mc:Ignorable="d"
+        Title="Vine Robot Control" Height="720" Width="1200">
+    <Window.DataContext>
+        <viewModels:MainViewModel />
+    </Window.DataContext>
+    <Grid Background="#101820">
+        <TabControl Margin="16" Background="#101820" BorderBrush="#1F2A44">
+            <TabItem Header="Setpoint Control">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="3*" />
+                    </Grid.ColumnDefinitions>
+
+                    <GroupBox Header="Serial Connection" Grid.Row="0" Grid.Column="0" Margin="0,0,12,12"
+                              Foreground="#E6EEF8" Background="#182230" BorderBrush="#2D3A4F">
+                        <Grid Margin="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Port" Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding AvailablePorts}" SelectedItem="{Binding SelectedPort}"
+                                      Width="140" />
+                            <Button Grid.Column="2" Content="Refresh" Margin="8,0" Command="{Binding RefreshPortsCommand}" />
+                            <Button Grid.Column="3" Content="Connect" Margin="8,0" Command="{Binding ConnectCommand}" />
+                            <Button Grid.Column="4" Content="Disconnect" Margin="8,0" Command="{Binding DisconnectCommand}" />
+
+                            <TextBlock Grid.Row="1" Text="Baud" Margin="0,8,8,0" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding BaudRate, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="140" Margin="0,8,0,0" />
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Segment Setpoints" Grid.Row="1" Grid.Column="0" Margin="0,0,12,12"
+                              Foreground="#E6EEF8" Background="#182230" BorderBrush="#2D3A4F">
+                        <DockPanel Margin="12">
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                                <Button Content="Send Selected" Command="{Binding SendSelectedCommand}" Margin="0,0,8,0" />
+                                <Button Content="Send All" Command="{Binding SendAllCommand}" />
+                            </StackPanel>
+                            <DataGrid ItemsSource="{Binding Segments}" SelectedItem="{Binding SelectedSegment}"
+                                      AutoGenerateColumns="False" HeadersVisibility="Column" CanUserAddRows="False"
+                                      CanUserDeleteRows="False" SelectionMode="Single" RowBackground="#142033"
+                                      AlternatingRowBackground="#1B2840" Foreground="#E6EEF8">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Side" Binding="{Binding SideLabel}" IsReadOnly="True" Width="Auto" />
+                                    <DataGridTextColumn Header="Segment" Binding="{Binding SegmentLabel}" IsReadOnly="True" Width="*" />
+                                    <DataGridTemplateColumn Header="Setpoint (PSI)" Width="150">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding DesiredPsi, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="ADC Min" Binding="{Binding Calibration.AdcMin}" Width="Auto" />
+                                    <DataGridTextColumn Header="ADC Max" Binding="{Binding Calibration.AdcMax}" Width="Auto" />
+                                    <DataGridTextColumn Header="Last Sent" Binding="{Binding LastSentAt, StringFormat=G}" Width="170" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="Series Pouch Motor End View" Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                              Foreground="#E6EEF8" Background="#182230" BorderBrush="#2D3A4F">
+                        <Grid Margin="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Left Side" Grid.Column="0" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center" />
+                            <TextBlock Text="Right Side" Grid.Column="1" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center" />
+
+                            <ItemsControl Grid.Row="1" Grid.Column="0" ItemsSource="{Binding LeftSegments}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="12" Margin="4" CornerRadius="12" BorderBrush="#375982" BorderThickness="1">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#15263B" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter Property="BorderBrush" Value="#3A86FF" />
+                                                            <Setter Property="BorderThickness" Value="2" />
+                                                            <Setter Property="Background" Value="#1E3B5E" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding SegmentLabel}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding DesiredPsi, StringFormat='{}{0:F2} PSI'}" FontSize="12" />
+                                                <TextBlock FontSize="12">
+                                                    <Run Text="ADC: " />
+                                                    <Run Text="{Binding Calibration.AdcMin, StringFormat={}{0:F0}}" />
+                                                    <Run Text=" - " />
+                                                    <Run Text="{Binding Calibration.AdcMax, StringFormat={}{0:F0}}" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding RightSegments}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="12" Margin="4" CornerRadius="12" BorderBrush="#824437" BorderThickness="1">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#331D1A" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter Property="BorderBrush" Value="#FF715B" />
+                                                            <Setter Property="BorderThickness" Value="2" />
+                                                            <Setter Property="Background" Value="#4A2823" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding SegmentLabel}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding DesiredPsi, StringFormat='{}{0:F2} PSI'}" FontSize="12" />
+                                                <TextBlock FontSize="12">
+                                                    <Run Text="ADC: " />
+                                                    <Run Text="{Binding Calibration.AdcMin, StringFormat={}{0:F0}}" />
+                                                    <Run Text=" - " />
+                                                    <Run Text="{Binding Calibration.AdcMax, StringFormat={}{0:F0}}" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Event Log" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                              Foreground="#E6EEF8" Background="#182230" BorderBrush="#2D3A4F">
+                        <ListBox Margin="12" ItemsSource="{Binding EventLog}" />
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Monitoring">
+                <Grid Margin="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <GroupBox Header="Pressure Trend" Grid.Row="0" Grid.Column="0"
+                              Foreground="#E6EEF8" Background="#182230" BorderBrush="#2D3A4F">
+                        <Grid Margin="12">
+                            <ScottPlot:WpfPlot x:Name="PressurePlot" />
+                            <TextBlock Text="ScottPlot placeholder - configure in Visual Studio" Foreground="#E6EEF8" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Live Samples" Grid.Row="0" Grid.Column="1"
+                              Foreground="#E6EEF8" Background="#182230" BorderBrush="#2D3A4F">
+                        <DataGrid Margin="12" ItemsSource="{Binding Telemetry}" AutoGenerateColumns="False"
+                                  CanUserAddRows="False" CanUserDeleteRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp, StringFormat=T}" Width="*" />
+                                <DataGridTextColumn Header="Raw PSI" Binding="{Binding SensorPsi, StringFormat=F2}" Width="*" />
+                                <DataGridTextColumn Header="Filtered PSI" Binding="{Binding FilteredPsi, StringFormat=F2}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </GroupBox>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,12,0,0"
+                               TextWrapping="Wrap"
+                               Foreground="#C5D1E3"
+                               Text="Filtering reminder: apply moving-average or outlier rejection before plotting to honor the provided flowchart." />
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
