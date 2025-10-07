@@ -1,8 +1,9 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace VineRobotControlApp.Models;
 
-public class SegmentSetpoint : ObservableObject
+public class SegmentSetpoint : INotifyPropertyChanged
 {
     private double _psi;
     private int _expectedAdc;
@@ -11,6 +12,8 @@ public class SegmentSetpoint : ObservableObject
     public PouchSide Side { get; }
     public int Segment { get; }
     public PressureCalibration Calibration { get; }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public SegmentSetpoint(PouchSide side, int segment, PressureCalibration calibration)
     {
@@ -26,7 +29,7 @@ public class SegmentSetpoint : ObservableObject
         get => _psi;
         set
         {
-            if (SetProperty(ref _psi, value))
+            if (SetField(ref _psi, value))
             {
                 UpdateExpectedAdc();
             }
@@ -36,13 +39,13 @@ public class SegmentSetpoint : ObservableObject
     public int ExpectedAdc
     {
         get => _expectedAdc;
-        private set => SetProperty(ref _expectedAdc, value);
+        private set => SetField(ref _expectedAdc, value);
     }
 
     public bool IsSelected
     {
         get => _isSelected;
-        set => SetProperty(ref _isSelected, value);
+        set => SetField(ref _isSelected, value);
     }
 
     public string DisplayName => $"{Side} S{Segment}";
@@ -52,4 +55,12 @@ public class SegmentSetpoint : ObservableObject
         ExpectedAdc = Calibration.PsiToAdc(Psi);
     }
 
+    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+            return false;
+        field = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        return true;
+    }
 }
