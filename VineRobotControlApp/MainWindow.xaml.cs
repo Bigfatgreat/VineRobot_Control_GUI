@@ -15,9 +15,12 @@ public partial class MainWindow : Window
     private readonly OutlierFilter _filter = new();
     private readonly List<double> _rawPsiPoints = new();
     private readonly List<double> _filteredPsiPoints = new();
+    private readonly List<double> _adcPoints = new();
     private readonly List<double> _sampleIndex = new();
     private Scatter? _rawScatter;
     private Scatter? _filteredScatter;
+    private Scatter? _adcScatter;
+    private Axis? _adcAxis;
 
     public MainViewModel ViewModel { get; }
 
@@ -54,6 +57,16 @@ public partial class MainWindow : Window
         _filteredScatter.LegendText = "Filtered";
         _filteredScatter.LineStyle.Color = Colors.Blue;
         _filteredScatter.LineStyle.Width = 2;
+
+        _adcAxis = plot.AddAxis(Edge.Right);
+        _adcAxis.Label("ADC");
+
+        _adcScatter = plot.Add.Scatter(_sampleIndex, _adcPoints);
+        _adcScatter.LegendText = "ADC";
+        _adcScatter.YAxisIndex = _adcAxis.AxisIndex;
+        _adcScatter.LineStyle.Color = Colors.Orange;
+
+        UpdateSeriesVisibility();
         PressurePlot.Refresh();
     }
 
@@ -209,6 +222,7 @@ public partial class MainWindow : Window
             _sampleIndex.Add(nextIndex);
             _rawPsiPoints.Add(psiRaw);
             _filteredPsiPoints.Add(psiFiltered);
+            _adcPoints.Add(e.Adc);
 
             const int maxPoints = 600;
             if (_sampleIndex.Count > maxPoints)
@@ -216,10 +230,34 @@ public partial class MainWindow : Window
                 _sampleIndex.RemoveAt(0);
                 _rawPsiPoints.RemoveAt(0);
                 _filteredPsiPoints.RemoveAt(0);
+                _adcPoints.RemoveAt(0);
             }
 
             PressurePlot.Plot.Axes.AutoScale();
             PressurePlot.Refresh();
         });
+    }
+
+    private void SeriesVisibilityCheckBoxChanged(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded)
+            return;
+
+        UpdateSeriesVisibility();
+    }
+
+    private void UpdateSeriesVisibility()
+    {
+        if (_rawScatter is not null)
+            _rawScatter.IsVisible = RawSeriesCheckBox.IsChecked ?? false;
+
+        if (_filteredScatter is not null)
+            _filteredScatter.IsVisible = FilteredSeriesCheckBox.IsChecked ?? false;
+
+        if (_adcScatter is not null)
+            _adcScatter.IsVisible = AdcSeriesCheckBox.IsChecked ?? false;
+
+        PressurePlot.Plot.Axes.AutoScale();
+        PressurePlot.Refresh();
     }
 }
