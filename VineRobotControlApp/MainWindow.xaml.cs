@@ -16,8 +16,8 @@ public partial class MainWindow : Window
     private readonly List<double> _rawPsiPoints = new();
     private readonly List<double> _filteredPsiPoints = new();
     private readonly List<double> _sampleIndex = new();
-    private Scatter? _rawScatter;
-    private Scatter? _filteredScatter;
+    private ScatterPlot? _rawScatter;
+    private ScatterPlot? _filteredScatter;
 
     public MainViewModel ViewModel { get; }
 
