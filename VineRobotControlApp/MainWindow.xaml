@@ -46,18 +46,18 @@
                     <ColumnDefinition Width="2*" />
                     <ColumnDefinition Width="2*" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Serial Port:" VerticalAlignment="Center" Style="{StaticResource HeaderText}" />
-                    <ComboBox x:Name="PortCombo" Width="160" IsEditable="False" />
-                    <Button Content="Refresh" Click="RefreshPorts_Click" />
-                    <Button x:Name="ConnectButton" Content="Connect" Width="100" Click="ConnectButton_Click" />
-                    <TextBlock Text="Baud:" VerticalAlignment="Center" Margin="16,0,0,0" />
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Serial Port:" VerticalAlignment="Center" Style="{StaticResource HeaderText}" Margin="0,0,8,0" />
+                    <ComboBox x:Name="PortCombo" Width="160" IsEditable="False" Margin="0,0,8,0" />
+                    <Button Content="Refresh" Click="RefreshPorts_Click" Margin="0,0,8,0" />
+                    <Button x:Name="ConnectButton" Content="Connect" Width="100" Click="ConnectButton_Click" Margin="0,0,8,0" />
+                    <TextBlock Text="Baud:" VerticalAlignment="Center" Margin="16,0,8,0" />
                     <TextBox x:Name="BaudText" Width="80" Text="115200" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                    <TextBlock Text="Selected:" VerticalAlignment="Center" Style="{StaticResource HeaderText}" />
-                    <ComboBox Width="180" ItemsSource="{Binding Setpoints}" SelectedItem="{Binding SelectedSetpoint}" DisplayMemberPath="DisplayName" />
-                    <Button Content="Send Selected" Click="SendSelected_Click" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock Text="Selected:" VerticalAlignment="Center" Style="{StaticResource HeaderText}" Margin="0,0,8,0" />
+                    <ComboBox Width="180" ItemsSource="{Binding Setpoints}" SelectedItem="{Binding SelectedSetpoint}" DisplayMemberPath="DisplayName" Margin="0,0,8,0" />
+                    <Button Content="Send Selected" Click="SendSelected_Click" Margin="0,0,8,0" />
                     <Button Content="Send All" Click="SendAll_Click" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" HorizontalAlignment="Right">
