@@ -188,11 +188,21 @@
             <TabItem Header="Monitoring">
                 <Grid Margin="12">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="3*" />
                         <RowDefinition Height="2*" />
                     </Grid.RowDefinitions>
-                    <ScottPlot:WpfPlot x:Name="PressurePlot" Grid.Row="0" Margin="0,0,0,12" />
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Telemetry}" AutoGenerateColumns="False" CanUserAddRows="False">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="Series:" VerticalAlignment="Center" Style="{StaticResource HeaderText}" />
+                        <CheckBox x:Name="RawSeriesCheckBox" Content="Raw PSI" IsChecked="True" Margin="12,0,0,0"
+                                  Checked="SeriesVisibilityCheckBoxChanged" Unchecked="SeriesVisibilityCheckBoxChanged" />
+                        <CheckBox x:Name="FilteredSeriesCheckBox" Content="Filtered PSI" IsChecked="True" Margin="12,0,0,0"
+                                  Checked="SeriesVisibilityCheckBoxChanged" Unchecked="SeriesVisibilityCheckBoxChanged" />
+                        <CheckBox x:Name="AdcSeriesCheckBox" Content="ADC" IsChecked="True" Margin="12,0,0,0"
+                                  Checked="SeriesVisibilityCheckBoxChanged" Unchecked="SeriesVisibilityCheckBoxChanged" />
+                    </StackPanel>
+                    <ScottPlot:WpfPlot x:Name="PressurePlot" Grid.Row="1" Margin="0,0,0,12" />
+                    <DataGrid Grid.Row="2" ItemsSource="{Binding Telemetry}" AutoGenerateColumns="False" CanUserAddRows="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Time" Binding="{Binding Timestamp}" />
                             <DataGridTextColumn Header="Side" Binding="{Binding Side}" />
